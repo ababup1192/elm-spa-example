@@ -21,6 +21,7 @@ import Url.Parser.Query as Q
 type Route
     = Top
     | HotelPage HotelId
+    | ReservePage HotelId HotelPlanId
     | NotFound
 
 
@@ -29,6 +30,7 @@ routeParser =
     P.oneOf
         [ P.map Top P.top
         , P.map HotelPage (P.s "hotel" </> P.int)
+        , P.map ReservePage (P.s "hotel" </> P.int </> P.s "plan" </> P.int </> P.s "reserve")
         ]
 
 
@@ -76,9 +78,16 @@ type alias HotelPlanId =
 
 type alias HotelPlan =
     { planId : Int
+    , hotelName : String
     , planName : String
     , accommodationFee : Int
     }
+
+
+type ReservePageState
+    = ReserveContentInput
+    | ReserveContentConfirm
+    | Reserved
 
 
 type alias Model =
@@ -86,9 +95,13 @@ type alias Model =
     , url : Url.Url
     , isTopLoaded : Bool
     , isHotelPageLoaded : Bool
+    , isReservePageLoaded : Bool
     , user : User
     , recommend : Recommend
     , hotel : Hotel
+    , plan : HotelPlan
+    , numOfPeople : Int
+    , reservePageState : ReservePageState
     }
 
 
@@ -110,6 +123,26 @@ getRecommend =
                 ]
 
 
+sweetPlan : HotelPlan
+sweetPlan =
+    HotelPlan 1 "さくらちゃんランド" "スイートルームプラン" 10000
+
+
+sakuraChanPlan : HotelPlan
+sakuraChanPlan =
+    HotelPlan 2 "さくらちゃんランド" "さくらちゃんと戯れプラン" 20000
+
+
+nyanyanPlan : HotelPlan
+nyanyanPlan =
+    HotelPlan 3 "にゃんこ宿" "にゃんにゃんプラン" 15000
+
+
+wanwanPlan : HotelPlan
+wanwanPlan =
+    HotelPlan 4 "ワンワンホテル" "ワンワンプラン" 13000
+
+
 getHotel : HotelId -> Cmd Msg
 getHotel hotelId =
     Task.attempt GotHotel <|
@@ -117,19 +150,39 @@ getHotel hotelId =
             1 ->
                 Task.succeed <|
                     Hotel "さくらちゃんランド"
-                        [ HotelPlan 1 "スイートルームプラン" 10000
-                        , HotelPlan 2 "さくらちゃんと戯れプラン" 20000
+                        [ sweetPlan
+                        , sakuraChanPlan
                         ]
 
             2 ->
                 Task.succeed <|
                     Hotel "にゃんこ宿"
-                        [ HotelPlan 3 "にゃんにゃんプラン" 15000 ]
+                        [ nyanyanPlan ]
 
             3 ->
                 Task.succeed <|
                     Hotel "ワンワンホテル"
-                        [ HotelPlan 4 "ワンワンプラン" 13000 ]
+                        [ wanwanPlan ]
+
+            _ ->
+                Task.fail "Hotel Not Found"
+
+
+getPlan : HotelPlanId -> Cmd Msg
+getPlan planId =
+    Task.attempt GotPlan <|
+        case planId of
+            1 ->
+                Task.succeed sweetPlan
+
+            2 ->
+                Task.succeed sakuraChanPlan
+
+            3 ->
+                Task.succeed <| nyanyanPlan
+
+            4 ->
+                Task.succeed <| wanwanPlan
 
             _ ->
                 Task.fail "Hotel Not Found"
@@ -148,6 +201,9 @@ urlToCommands model url =
         HotelPage hotelId ->
             [ getUser, getHotel hotelId ]
 
+        ReservePage hotelId planId ->
+            [ getUser, getPlan planId ]
+
         NotFound ->
             [ getUser ]
 
@@ -155,21 +211,54 @@ urlToCommands model url =
 urlToOptimizedCommands : Model -> Url.Url -> List (Cmd Msg)
 urlToOptimizedCommands model url =
     let
-        { isTopLoaded, isHotelPageLoaded } =
+        { isTopLoaded, isHotelPageLoaded, isReservePageLoaded } =
             model
-    in
-    if isTopLoaded || isHotelPageLoaded then
-        []
 
-    else
-        urlToCommands model url
+        defaultCommands u =
+            urlToCommands model u
+    in
+    case urlToRoute url of
+        Top ->
+            if isTopLoaded then
+                []
+
+            else
+                defaultCommands url
+
+        HotelPage _ ->
+            if isHotelPageLoaded then
+                []
+
+            else
+                defaultCommands url
+
+        ReservePage hotelId planId ->
+            if isReservePageLoaded then
+                []
+
+            else
+                defaultCommands url
+
+        NotFound ->
+            defaultCommands url
 
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
     let
         initialModel =
-            Model key url False False (User "") (Recommend []) (Hotel "" [])
+            Model
+                key
+                url
+                False
+                False
+                False
+                (User "")
+                (Recommend [])
+                (Hotel "" [])
+                (HotelPlan 0 "" "" 0)
+                1
+                ReserveContentInput
     in
     ( initialModel
     , Cmd.batch <| urlToCommands initialModel url
@@ -188,6 +277,12 @@ type Msg
     | GotUser User
     | GotRecommend Recommend
     | GotHotel (Result String Hotel)
+    | GotPlan (Result String HotelPlan)
+    | GoToReserve HotelId HotelPlanId
+    | UpdateNumOfPeople String
+    | ToConfirm
+    | ToReserved
+    | GoToTop
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -225,6 +320,41 @@ update msg model =
                 Err _ ->
                     ( model, Cmd.none )
 
+        GotPlan result ->
+            case result of
+                Ok plan ->
+                    ( { model | plan = plan, isReservePageLoaded = True }, Cmd.none )
+
+                Err _ ->
+                    ( model, Cmd.none )
+
+        GoToReserve hotelId planId ->
+            ( { model
+                | reservePageState = ReserveContentInput
+                , numOfPeople = 1
+              }
+            , Nav.load <|
+                UrlBuilder.absolute [ "hotel", String.fromInt hotelId, "plan", String.fromInt planId, "reserve" ] []
+            )
+
+        UpdateNumOfPeople numOfPeopleText ->
+            ( { model
+                | numOfPeople =
+                    Maybe.withDefault model.numOfPeople <|
+                        String.toInt numOfPeopleText
+              }
+            , Cmd.none
+            )
+
+        ToConfirm ->
+            ( { model | reservePageState = ReserveContentConfirm }, Cmd.none )
+
+        ToReserved ->
+            ( { model | reservePageState = Reserved }, Cmd.none )
+
+        GoToTop ->
+            ( { model | reservePageState = ReserveContentInput }, Nav.load "/" )
+
 
 
 -- ---------------------------
@@ -235,7 +365,7 @@ update msg model =
 view : Model -> Browser.Document Msg
 view model =
     let
-        { url, user, recommend, hotel } =
+        { url, user, recommend, hotel, plan, numOfPeople, reservePageState } =
             model
     in
     case urlToRoute url of
@@ -251,7 +381,7 @@ view model =
                 ]
             }
 
-        HotelPage _ ->
+        HotelPage hotelId ->
             let
                 { hotelName, planList } =
                     hotel
@@ -259,22 +389,65 @@ view model =
             { title = hotel.hotelName ++ "プラン一覧"
             , body =
                 [ headerView user
-                , a [ href <| UrlBuilder.relative [ "..", ".." ] [] ] [ text "戻る" ]
+                , a [ href "/" ] [ text "戻る" ]
                 , h1 [] [ text hotelName ]
                 , section [] <|
                     List.map
-                        (\{ planName, accommodationFee } ->
+                        (\{ planId, planName, accommodationFee } ->
                             article []
                                 [ h2 [] [ text planName ]
                                 , div [ class "page-hotel-planlist-reserve" ]
                                     [ span [] [ text <| "￥" ++ String.fromInt accommodationFee ]
-                                    , a [ href <| UrlBuilder.relative [ "reserve" ] [] ] [ text "予約する" ]
+                                    , button [ onClick <| GoToReserve hotelId planId ] [ text "予約する" ]
                                     ]
                                 ]
                         )
                         planList
                 ]
             }
+
+        ReservePage hotelId planId ->
+            let
+                { hotelName, planName, accommodationFee } =
+                    plan
+            in
+            case reservePageState of
+                ReserveContentInput ->
+                    { title = planName ++ "のご予約"
+                    , body =
+                        [ headerView user
+                        , a [ href <| UrlBuilder.absolute [ "hotel", String.fromInt hotelId ] [] ] [ text "戻る" ]
+                        , h1 [] [ text <| planName ++ " - " ++ hotelName ]
+                        , section [ class "page-hotel-reserve-content" ]
+                            [ div []
+                                [ input [ type_ "number", value <| String.fromInt numOfPeople, onInput UpdateNumOfPeople ] []
+                                , span [] [ text "人" ]
+                                ]
+                            , button [ onClick ToConfirm ] [ text "予約確認へ" ]
+                            ]
+                        ]
+                    }
+
+                ReserveContentConfirm ->
+                    { title = planName ++ "のご予約の確認"
+                    , body =
+                        [ headerView user
+                        , h1 [] [ text "ご予約の確認" ]
+                        , section [ class "" ]
+                            [ h2 [] [ text <| String.fromInt <| accommodationFee * numOfPeople ]
+                            , button [ onClick ToReserved ] [ text "予約確認へ" ]
+                            ]
+                        ]
+                    }
+
+                Reserved ->
+                    { title = "ご予約ありがとうございました。"
+                    , body =
+                        [ headerView user
+                        , h1 [] [ text "ご予約ありがとうございました。" ]
+                        , a [ href "/" ] [ text "トップへ戻る" ]
+                        ]
+                    }
 
         NotFound ->
             { title = hotel.hotelName ++ "Not found"
