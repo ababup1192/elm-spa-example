@@ -172,7 +172,19 @@ update msg model =
         LinkClicked urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
-                    ( model, Nav.pushUrl model.key (Url.toString url) )
+                    let
+                        commands =
+                            case urlToRoute url of
+                                Top ->
+                                    [ getUser, getRecommend ]
+
+                                HotelPage hotelId ->
+                                    [ getUser, getHotel hotelId ]
+
+                                NotFound ->
+                                    [ getUser ]
+                    in
+                    ( model, Cmd.batch <| Nav.pushUrl model.key (Url.toString url) :: commands )
 
                 Browser.External href ->
                     ( model, Nav.load href )
@@ -230,7 +242,7 @@ view model =
             { title = hotel.hotelName ++ "プラン一覧"
             , body =
                 [ headerView user
-                , a [ href <| UrlBuilder.relative [ ".." ] [] ] [ text "戻る" ]
+                , a [ href <| UrlBuilder.relative [ "..", ".." ] [] ] [ text "戻る" ]
                 , h1 [] [ text hotelName ]
                 , section [] <|
                     List.map
