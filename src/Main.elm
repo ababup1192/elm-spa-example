@@ -152,8 +152,8 @@ urlToCommands model url =
             [ getUser ]
 
 
-urlToOptimizeCommands : Model -> Url.Url -> List (Cmd Msg)
-urlToOptimizeCommands model url =
+urlToOptimizedCommands : Model -> Url.Url -> List (Cmd Msg)
+urlToOptimizedCommands model url =
     let
         { isTopLoaded, isHotelPageLoaded } =
             model
@@ -208,7 +208,7 @@ update msg model =
         UrlChanged url ->
             ( { model | url = url }
             , Cmd.batch <|
-                urlToOptimizeCommands model url
+                urlToOptimizedCommands model url
             )
 
         GotUser user ->
