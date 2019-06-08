@@ -190,8 +190,20 @@ update msg model =
                     ( model, Nav.load href )
 
         UrlChanged url ->
+            let
+                commands =
+                    case urlToRoute url of
+                        Top ->
+                            [ getUser, getRecommend ]
+
+                        HotelPage hotelId ->
+                            [ getUser, getHotel hotelId ]
+
+                        NotFound ->
+                            [ getUser ]
+            in
             ( { model | url = url }
-            , Cmd.none
+            , Cmd.batch commands
             )
 
         GotUser user ->
