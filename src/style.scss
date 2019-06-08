@@ -1,0 +1,45 @@
+$color-brand: #5590DD;
+
+body {
+  padding: 20px;
+}
+
+.cmn-header {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.page-top-hotellist-article__link {
+  cursor: pointer;
+  display: block;
+  color: #000;
+  text-decoration: none;
+}
+
+.page-top-hotellist-article__link + .page-top-hotellist-article__link {
+  margin: 30px 0 0;
+}
+
+.page-top-hotellist-article {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  grid-template-rows: 1fr 1fr;
+  grid-column-gap: 15px;
+
+  .__thumb {
+    grid-row: 1 / 3;
+    width: 120px;
+    height: 120px;
+    border-radius: 3px;
+  }
+
+  .__title {
+      padding: 8px 0;
+      margin: 0;
+  }
+
+  .__description {
+    padding: 8px 0;
+    align-self: end;
+  }
+}
