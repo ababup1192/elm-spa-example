@@ -84,6 +84,8 @@ type alias HotelPlan =
 type alias Model =
     { key : Nav.Key
     , url : Url.Url
+    , isTopLoaded : Bool
+    , isHotelPageLoaded : Bool
     , user : User
     , recommend : Recommend
     , hotel : Hotel
@@ -133,22 +135,44 @@ getHotel hotelId =
                 Task.fail "Hotel Not Found"
 
 
+urlToCommands : Model -> Url.Url -> List (Cmd Msg)
+urlToCommands model url =
+    let
+        { isTopLoaded, isHotelPageLoaded } =
+            model
+    in
+    case urlToRoute url of
+        Top ->
+            [ getUser, getRecommend ]
+
+        HotelPage hotelId ->
+            [ getUser, getHotel hotelId ]
+
+        NotFound ->
+            [ getUser ]
+
+
+urlToOptimizeCommands : Model -> Url.Url -> List (Cmd Msg)
+urlToOptimizeCommands model url =
+    let
+        { isTopLoaded, isHotelPageLoaded } =
+            model
+    in
+    if isTopLoaded || isHotelPageLoaded then
+        []
+
+    else
+        urlToCommands model url
+
+
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
     let
-        commands =
-            case urlToRoute url of
-                Top ->
-                    [ getUser, getRecommend ]
-
-                HotelPage hotelId ->
-                    [ getUser, getHotel hotelId ]
-
-                NotFound ->
-                    [ getUser ]
+        initialModel =
+            Model key url False False (User "") (Recommend []) (Hotel "" [])
     in
-    ( Model key url (User "") (Recommend []) (Hotel "" [])
-    , Cmd.batch commands
+    ( initialModel
+    , Cmd.batch <| urlToCommands initialModel url
     )
 
 
@@ -172,50 +196,31 @@ update msg model =
         LinkClicked urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
-                    let
-                        commands =
-                            case urlToRoute url of
-                                Top ->
-                                    [ getUser, getRecommend ]
-
-                                HotelPage hotelId ->
-                                    [ getUser, getHotel hotelId ]
-
-                                NotFound ->
-                                    [ getUser ]
-                    in
-                    ( model, Cmd.batch <| Nav.pushUrl model.key (Url.toString url) :: commands )
+                    ( model
+                    , Cmd.batch <|
+                        Nav.pushUrl model.key (Url.toString url)
+                            :: urlToCommands model url
+                    )
 
                 Browser.External href ->
                     ( model, Nav.load href )
 
         UrlChanged url ->
-            let
-                commands =
-                    case urlToRoute url of
-                        Top ->
-                            [ getUser, getRecommend ]
-
-                        HotelPage hotelId ->
-                            [ getUser, getHotel hotelId ]
-
-                        NotFound ->
-                            [ getUser ]
-            in
             ( { model | url = url }
-            , Cmd.batch commands
+            , Cmd.batch <|
+                urlToOptimizeCommands model url
             )
 
         GotUser user ->
             ( { model | user = user }, Cmd.none )
 
         GotRecommend recommend ->
-            ( { model | recommend = recommend }, Cmd.none )
+            ( { model | recommend = recommend, isTopLoaded = True }, Cmd.none )
 
         GotHotel result ->
             case result of
                 Ok hotel ->
-                    ( { model | hotel = hotel }, Cmd.none )
+                    ( { model | hotel = hotel, isHotelPageLoaded = True }, Cmd.none )
 
                 Err _ ->
                     ( model, Cmd.none )
