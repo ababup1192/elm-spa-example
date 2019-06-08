@@ -7,6 +7,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Task as Task exposing (Task)
 import Url
+import Url.Builder as UrlBuilder
 import Url.Parser as P exposing ((</>), (<?>), Parser)
 import Url.Parser.Query as Q
 
@@ -134,8 +135,20 @@ getHotel hotelId =
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
+    let
+        commands =
+            case urlToRoute url of
+                Top ->
+                    [ getUser, getRecommend ]
+
+                HotelPage hotelId ->
+                    [ getUser, getHotel hotelId ]
+
+                NotFound ->
+                    [ getUser ]
+    in
     ( Model key url (User "") (Recommend []) (Hotel "" [])
-    , Cmd.batch [ getUser, getRecommend ]
+    , Cmd.batch commands
     )
 
 
@@ -210,9 +223,23 @@ view model =
             }
 
         HotelPage _ ->
+            let
+                { hotelName, planList } =
+                    hotel
+            in
             { title = hotel.hotelName ++ "プラン一覧"
             , body =
                 [ headerView user
+                , a [ href <| UrlBuilder.relative [ ".." ] [] ] [ text "戻る" ]
+                , h1 [] [ text hotelName ]
+                , section [] <|
+                    List.map
+                        (\plan ->
+                            article []
+                                [ p [] [ text plan.planName ]
+                                ]
+                        )
+                        planList
                 ]
             }
 
@@ -237,8 +264,8 @@ headerView user =
 
 
 hotelOverviewView : HotelOverview -> Html Msg
-hotelOverviewView { hotelName, description } =
-    a [ class "page-top-hotellist-article__link" ]
+hotelOverviewView { hotelId, hotelName, description } =
+    a [ href <| UrlBuilder.relative [ "hotel", String.fromInt hotelId ] [], class "page-top-hotellist-article__link" ]
         [ article [ class "page-top-hotellist-article" ]
             [ img [ class "__thumb", src "https://4.bp.blogspot.com/-LR5Lja-lZ4E/WZVgz8oz0zI/AAAAAAABGE8/dA0DAXWkQFIY23wjjILccR7m8KXHSAzzACLcBGAs/s400/building_hotel_small.png" ] []
             , h3 [ class "__title" ] [ text hotelName ]
