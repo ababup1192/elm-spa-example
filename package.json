@@ -4,7 +4,7 @@
     "copy:js": "ncp ./src/main.js ./out/main.js",
     "copy:assets": "ncp ./src/assets ./out/assets",
     "copy": "mkdirp out && npm-run-all -p copy:*",
-    "watch:elm": "elm-live ./src/Main.elm --open --start-page=index.html --dir=out -- --output=./out/elm.js --debug",
+    "watch:elm": "elm-live ./src/Main.elm --open --pushstate --dir=out -- --debug",
     "watch:sass": "npm run build:sass && node-sass -w --include-path scss ./src/style.scss ./out/style.css",
     "watch": "npm-run-all -p watch:*",
     "start": "npm-run-all -s copy watch",
