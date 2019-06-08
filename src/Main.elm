@@ -263,9 +263,13 @@ view model =
                 , h1 [] [ text hotelName ]
                 , section [] <|
                     List.map
-                        (\plan ->
+                        (\{ planName, accommodationFee } ->
                             article []
-                                [ p [] [ text plan.planName ]
+                                [ h2 [] [ text planName ]
+                                , div [ class "page-hotel-planlist-reserve" ]
+                                    [ span [] [ text <| "￥" ++ String.fromInt accommodationFee ]
+                                    , a [ href <| UrlBuilder.relative [ "reserve" ] [] ] [ text "予約する" ]
+                                    ]
                                 ]
                         )
                         planList
