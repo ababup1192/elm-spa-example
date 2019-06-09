@@ -279,10 +279,10 @@ type Msg
     | GotHotel (Result String Hotel)
     | GotPlan (Result String HotelPlan)
     | GoToReserve HotelId HotelPlanId
+    | GoBackToHotelPlan HotelId
     | UpdateNumOfPeople String
     | ToConfirm
     | ToReserved
-    | GoToTop
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -329,12 +329,26 @@ update msg model =
                     ( model, Cmd.none )
 
         GoToReserve hotelId planId ->
+            let
+                url =
+                    model.url
+
+                reserveURLPath =
+                    UrlBuilder.absolute [ "hotel", String.fromInt hotelId, "plan", String.fromInt planId, "reserve" ] []
+            in
             ( { model
                 | reservePageState = ReserveContentInput
                 , numOfPeople = 1
               }
-            , Nav.load <|
-                UrlBuilder.absolute [ "hotel", String.fromInt hotelId, "plan", String.fromInt planId, "reserve" ] []
+            , Cmd.batch <|
+                Nav.pushUrl model.key reserveURLPath
+                    :: urlToCommands model { url | path = reserveURLPath }
+            )
+
+        GoBackToHotelPlan hotelId ->
+            ( model
+            , Nav.pushUrl model.key <|
+                UrlBuilder.absolute [ "hotel", String.fromInt hotelId ] []
             )
 
         UpdateNumOfPeople numOfPeopleText ->
@@ -351,9 +365,6 @@ update msg model =
 
         ToReserved ->
             ( { model | reservePageState = Reserved }, Cmd.none )
-
-        GoToTop ->
-            ( { model | reservePageState = ReserveContentInput }, Nav.load "/" )
 
 
 
@@ -416,7 +427,7 @@ view model =
                     { title = planName ++ "のご予約"
                     , body =
                         [ headerView user
-                        , a [ href <| UrlBuilder.absolute [ "hotel", String.fromInt hotelId ] [] ] [ text "戻る" ]
+                        , button [ onClick <| GoBackToHotelPlan hotelId ] [ text "戻る" ]
                         , h1 [] [ text <| planName ++ " - " ++ hotelName ]
                         , section [ class "page-hotel-reserve-content" ]
                             [ div []
