@@ -1,10 +1,13 @@
-# elm starfighter
+# elm spa example
+
+[![Netlify Status](https://api.netlify.com/api/v1/badges/8ccb930b-9c68-4c21-9ccf-236c0b9c2e2c/deploy-status)](https://app.netlify.com/sites/elm-spa-example-abab/deploys)
+
 
 ## Installation
 
 ```
-$ git clone git@github.com:ababup1192/elm-starfighter.git
-$ cd elm-startfighter
+$ git clone git@github.com:ababup1192/elm-spa-example.git
+$ cd elm-spa-example
 $ npm install
 $ npm start
 ```
@@ -17,8 +20,6 @@ $ npm run build
 ```
 
 ## Netlify
-
-[demo](https://elm-starfighter-abab.netlify.com)
 
 ### Build command
 
