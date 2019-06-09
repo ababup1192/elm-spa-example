@@ -208,41 +208,6 @@ urlToCommands model url =
             [ getUser ]
 
 
-urlToOptimizedCommands : Model -> Url.Url -> List (Cmd Msg)
-urlToOptimizedCommands model url =
-    let
-        { isTopLoaded, isHotelPageLoaded, isReservePageLoaded } =
-            model
-
-        defaultCommands u =
-            urlToCommands model u
-    in
-    case urlToRoute url of
-        Top ->
-            if isTopLoaded then
-                []
-
-            else
-                defaultCommands url
-
-        HotelPage _ ->
-            if isHotelPageLoaded then
-                []
-
-            else
-                defaultCommands url
-
-        ReservePage hotelId planId ->
-            if isReservePageLoaded then
-                []
-
-            else
-                defaultCommands url
-
-        NotFound ->
-            defaultCommands url
-
-
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
     let
@@ -279,7 +244,6 @@ type Msg
     | GotHotel (Result String Hotel)
     | GotPlan (Result String HotelPlan)
     | GoToReserve HotelId HotelPlanId
-    | GoBackToHotelPlan HotelId
     | UpdateNumOfPeople String
     | ToConfirm
     | ToReserved
@@ -301,10 +265,7 @@ update msg model =
                     ( model, Nav.load href )
 
         UrlChanged url ->
-            ( { model | url = url }
-            , Cmd.batch <|
-                urlToOptimizedCommands model url
-            )
+            ( { model | url = url }, Cmd.none )
 
         GotUser user ->
             ( { model | user = user }, Cmd.none )
@@ -336,20 +297,7 @@ update msg model =
                 reserveURLPath =
                     UrlBuilder.absolute [ "hotel", String.fromInt hotelId, "plan", String.fromInt planId, "reserve" ] []
             in
-            ( { model
-                | reservePageState = ReserveContentInput
-                , numOfPeople = 1
-              }
-            , Cmd.batch <|
-                Nav.pushUrl model.key reserveURLPath
-                    :: urlToCommands model { url | path = reserveURLPath }
-            )
-
-        GoBackToHotelPlan hotelId ->
-            ( model
-            , Nav.pushUrl model.key <|
-                UrlBuilder.absolute [ "hotel", String.fromInt hotelId ] []
-            )
+            ( model, Nav.load reserveURLPath )
 
         UpdateNumOfPeople numOfPeopleText ->
             ( { model
@@ -427,7 +375,7 @@ view model =
                     { title = planName ++ "のご予約"
                     , body =
                         [ headerView user
-                        , button [ onClick <| GoBackToHotelPlan hotelId ] [ text "戻る" ]
+                        , a [ href <| UrlBuilder.absolute [ "hotel", String.fromInt hotelId ] [] ] [ text "戻る" ]
                         , h1 [] [ text <| planName ++ " - " ++ hotelName ]
                         , section [ class "page-hotel-reserve-content" ]
                             [ div []
@@ -482,7 +430,7 @@ headerView user =
 
 hotelOverviewView : HotelOverview -> Html Msg
 hotelOverviewView { hotelId, hotelName, description } =
-    a [ href <| UrlBuilder.relative [ "hotel", String.fromInt hotelId ] [], class "page-top-hotellist-article__link" ]
+    a [ href <| UrlBuilder.absolute [ "hotel", String.fromInt hotelId ] [], class "page-top-hotellist-article__link" ]
         [ article [ class "page-top-hotellist-article" ]
             [ img [ class "__thumb", src "https://4.bp.blogspot.com/-LR5Lja-lZ4E/WZVgz8oz0zI/AAAAAAABGE8/dA0DAXWkQFIY23wjjILccR7m8KXHSAzzACLcBGAs/s400/building_hotel_small.png" ] []
             , h3 [ class "__title" ] [ text hotelName ]
