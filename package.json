@@ -3,6 +3,7 @@
     "copy:html": "ncp ./src/index.html ./out/index.html",
     "copy:js": "ncp ./src/main.js ./out/main.js",
     "copy:assets": "ncp ./src/assets ./out/assets",
+    "copy:netlify":"ncp .netlify/_redirects ./out/_redirects",
     "copy": "mkdirp out && npm-run-all -p copy:*",
     "watch:elm": "elm-live ./src/Main.elm --open --pushstate --dir=out -- --output=./out/elm.js --debug",
     "watch:sass": "npm run build:sass && node-sass -w --include-path scss ./src/style.scss ./out/style.css",
