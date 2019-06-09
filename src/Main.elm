@@ -446,7 +446,7 @@ view model =
                         , h1 [] [ text "ご予約の確認" ]
                         , section [ class "" ]
                             [ h2 [] [ text <| String.fromInt <| accommodationFee * numOfPeople ]
-                            , button [ onClick ToReserved ] [ text "予約確認へ" ]
+                            , button [ onClick ToReserved ] [ text "予約確定" ]
                             ]
                         ]
                     }
