@@ -93,9 +93,6 @@ type ReservePageState
 type alias Model =
     { key : Nav.Key
     , url : Url.Url
-    , isTopLoaded : Bool
-    , isHotelPageLoaded : Bool
-    , isReservePageLoaded : Bool
     , user : User
     , recommend : Recommend
     , hotel : Hotel
@@ -190,10 +187,6 @@ getPlan planId =
 
 urlToCommands : Model -> Url.Url -> List (Cmd Msg)
 urlToCommands model url =
-    let
-        { isTopLoaded, isHotelPageLoaded } =
-            model
-    in
     case urlToRoute url of
         Top ->
             [ getUser, getRecommend ]
@@ -215,9 +208,6 @@ init flags url key =
             Model
                 key
                 url
-                False
-                False
-                False
                 (User "")
                 (Recommend [])
                 (Hotel "" [])
@@ -271,12 +261,12 @@ update msg model =
             ( { model | user = user }, Cmd.none )
 
         GotRecommend recommend ->
-            ( { model | recommend = recommend, isTopLoaded = True }, Cmd.none )
+            ( { model | recommend = recommend }, Cmd.none )
 
         GotHotel result ->
             case result of
                 Ok hotel ->
-                    ( { model | hotel = hotel, isHotelPageLoaded = True }, Cmd.none )
+                    ( { model | hotel = hotel }, Cmd.none )
 
                 Err _ ->
                     ( model, Cmd.none )
@@ -284,7 +274,7 @@ update msg model =
         GotPlan result ->
             case result of
                 Ok plan ->
-                    ( { model | plan = plan, isReservePageLoaded = True }, Cmd.none )
+                    ( { model | plan = plan }, Cmd.none )
 
                 Err _ ->
                     ( model, Cmd.none )
