@@ -3,6 +3,8 @@
 [![Netlify Status](https://api.netlify.com/api/v1/badges/8ccb930b-9c68-4c21-9ccf-236c0b9c2e2c/deploy-status)](https://app.netlify.com/sites/elm-spa-example-abab/deploys)
 
 
+[demo](https://elm-spa-example-abab.netlify.com)
+
 ## Installation
 
 ```
